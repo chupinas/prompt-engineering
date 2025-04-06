@@ -41,38 +41,13 @@ public class ChatBotController {
         List<ChatMessageContent<?>> response = chatCompletionService.getChatMessageContentsAsync(
                 history,
                 kernel,
-                InvocationContext.builder()
-                        .withPromptExecutionSettings(PromptExecutionSettings.builder()
-                                .withTemperature(0.1)
-                                .build())
-                        .build()
+                invocationContext
         ).block();
         history.addAll(response);
 
-        history.addUserMessage(input);
-        List<ChatMessageContent<?>> creativeResponse = chatCompletionService.getChatMessageContentsAsync(
-                history,
-                kernel,
-                InvocationContext.builder()
-                        .withPromptExecutionSettings(PromptExecutionSettings.builder()
-                                .withTemperature(1.0)
-                                .build())
-                        .build()
-        ).block();
-        history.addAll(creativeResponse);
-
-        return Map.of("input t=0.1", input,
-                "response t=0.1", convertChatMessagesToJson(response),
-                "input t=1.0", input,
-                "response t=1.0", convertChatMessagesToJson(creativeResponse));
+        return Map.of("input: ", input,
+                "response: ", convertChatMessagesToJson(response));
     }
-
-//    {
-//        "response t=0.1": "[\"I'm sorry, I am an AI assistant and I do not have real-time information. I recommend checking a reliable weather website or app for the most up-to-date weather information in Krakow.\"]",
-//        "response t=1.0": "[\"I'm sorry for my previous response. Let me check the weather for you. \\n\\nAs of now, the weather in Krakow is mostly cloudy with a high of 21°C and a low of 9°C. There is a chance of rain showers throughout the day. Make sure to check a reliable weather source for the most up-to-date information.\"]",
-//            "input t=1.0": "what the weather today in krakow",
-//            "input t=0.1": "what the weather today in krakow"
-//    }
 
     private String convertChatMessagesToJson(List<ChatMessageContent<?>> messages) {
         try {
