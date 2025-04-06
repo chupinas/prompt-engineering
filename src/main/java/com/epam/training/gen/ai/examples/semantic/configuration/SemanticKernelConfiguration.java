@@ -1,11 +1,16 @@
 package com.epam.training.gen.ai.examples.semantic.configuration;
 
 import com.azure.ai.openai.OpenAIAsyncClient;
+import com.epam.training.gen.ai.examples.semantic.plugin.MultiplyPlugin;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.semantickernel.Kernel;
 import com.microsoft.semantickernel.aiservices.openai.chatcompletion.OpenAIChatCompletion;
 import com.microsoft.semantickernel.orchestration.InvocationContext;
+import com.microsoft.semantickernel.orchestration.InvocationReturnMode;
 import com.microsoft.semantickernel.orchestration.PromptExecutionSettings;
+import com.microsoft.semantickernel.orchestration.ToolCallBehavior;
+import com.microsoft.semantickernel.plugin.KernelPlugin;
+import com.microsoft.semantickernel.plugin.KernelPluginFactory;
 import com.microsoft.semantickernel.services.chatcompletion.ChatCompletionService;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +70,8 @@ public class SemanticKernelConfiguration {
     public Kernel kernel(ChatCompletionService chatCompletionService) {
         return Kernel.builder()
                 .withAIService(ChatCompletionService.class, chatCompletionService)
+                .withPlugin(KernelPluginFactory.createFromObject(new MultiplyPlugin(),
+                        "MultiplyPlugin"))
                 .build();
     }
 
@@ -79,6 +86,8 @@ public class SemanticKernelConfiguration {
                 .withPromptExecutionSettings(PromptExecutionSettings.builder()
                         .withTemperature(1.0)
                         .build())
+                .withReturnMode(InvocationReturnMode.LAST_MESSAGE_ONLY)
+                .withToolCallBehavior(ToolCallBehavior.allowAllKernelFunctions(true))
                 .build();
     }
 
@@ -95,6 +104,7 @@ public class SemanticKernelConfiguration {
                 .withTemperature(1.0)
                 .build());
     }
+
 
     @Bean
     public List<Model> deployedModels(@Value("${client-azureopenai-endpoint-model-list}") String modelListUrl, @Value("${client-azureopenai-key}") String accessToken) throws IOException, InterruptedException {
