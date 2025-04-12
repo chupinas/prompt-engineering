@@ -1,9 +1,20 @@
 package com.epam.training.gen.ai.examples.semantic.configuration;
 
 import com.azure.ai.openai.OpenAIAsyncClient;
+import com.azure.core.credential.AzureKeyCredential;
+import com.azure.core.util.ClientOptions;
+import com.azure.core.util.MetricsOptions;
+import com.azure.core.util.TracingOptions;
+import com.azure.search.documents.indexes.SearchIndexAsyncClient;
+import com.azure.search.documents.indexes.SearchIndexClientBuilder;
+import com.epam.training.gen.ai.examples.semantic.model.DummyRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.semantickernel.Kernel;
 import com.microsoft.semantickernel.aiservices.openai.chatcompletion.OpenAIChatCompletion;
+import com.microsoft.semantickernel.aiservices.openai.textembedding.OpenAITextEmbeddingGenerationService;
+import com.microsoft.semantickernel.data.VolatileVectorStore;
+import com.microsoft.semantickernel.data.VolatileVectorStoreRecordCollectionOptions;
+import com.microsoft.semantickernel.data.vectorstorage.VectorStoreRecordCollection;
 import com.microsoft.semantickernel.orchestration.InvocationContext;
 import com.microsoft.semantickernel.orchestration.PromptExecutionSettings;
 import com.microsoft.semantickernel.services.chatcompletion.ChatCompletionService;
@@ -32,6 +43,8 @@ import java.util.Map;
  */
 @Configuration
 public class SemanticKernelConfiguration {
+
+    private static final int EMBEDDING_DIMENSIONS = 0;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -130,6 +143,40 @@ public class SemanticKernelConfiguration {
         List<String> description_keywords;
         int max_retry_attempts;
         String lifecycle_status;
+    }
+
+    @Bean
+    public OpenAITextEmbeddingGenerationService embeddingGeneration(@Value("${client-azureopenai-deployment-name}")
+                                                                    String deploymentOrModelName,
+                                                                    OpenAIAsyncClient openAIAsyncClient){
+        return OpenAITextEmbeddingGenerationService.builder()
+                .withOpenAIAsyncClient(openAIAsyncClient)
+                .withModelId(deploymentOrModelName)
+                .withDimensions(EMBEDDING_DIMENSIONS)
+                .build();
+    }
+
+    @Bean
+    public SearchIndexAsyncClient searchClient(@Value("${client-azureopenai-key}") String openaiKey,
+                                               @Value("${client-azureopenai-endpoint}") String openaiEndpoint){
+        return new SearchIndexClientBuilder()
+                .endpoint(openaiEndpoint)
+                .credential(new AzureKeyCredential(openaiKey))
+                .clientOptions(new ClientOptions()
+                        .setTracingOptions(new TracingOptions())
+                        .setMetricsOptions(new MetricsOptions())
+                        .setApplicationId("Semantic-Kernel"))
+                .buildAsyncClient();
+    }
+
+    @Bean
+    public VectorStoreRecordCollection<String, DummyRecord> vectorStoreRecordCollection(){
+        var volatileVectorStore = new VolatileVectorStore();
+        String collectionName = "testDataStore";
+        return volatileVectorStore.getCollection(collectionName,
+                VolatileVectorStoreRecordCollectionOptions.<DummyRecord>builder()
+                        .withRecordClass(DummyRecord.class)
+                        .build());
     }
 }
 
